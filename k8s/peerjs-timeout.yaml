@@ -4,3 +4,5 @@ metadata:
   name: my-backendconfig
 spec:
   timeoutSec: 3600
+  connectionDraining:
+    drainingTimeoutSec: 3600
