@@ -118,7 +118,7 @@ class VideoPeer extends Component {
       //console.log('Peer Connection is',pc);
     }
     this.setState({ 'start': Date.now(), 'time': 0 });
-    //this.pick();   
+    this.advanceCall();  
   }; 
 
   clearCanvas(canvas_id) {
@@ -205,10 +205,7 @@ class VideoPeer extends Component {
     }
   };
 
-  async handleSubmit(event) {
-    event.preventDefault();
-    //const viewArea = this.myRef.current;
-    // redirect to chat
+  advanceCall() {
     console.log("Heard click to connect");
     if (this.callProgress() < 1) {
       this.setState({'callStart': 0});
@@ -218,6 +215,13 @@ class VideoPeer extends Component {
       console.log("Finding new partner");
       this.pick();
     }
+  }
+
+  async handleSubmit(event) {
+    event.preventDefault();
+    //const viewArea = this.myRef.current;
+    // redirect to chat
+    this.advanceCall();
   };
 
   async handleKeep(event) {
