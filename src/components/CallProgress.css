@@ -1,0 +1,15 @@
+.progressOuter {
+    height: 3px;
+    position: absolute;
+    background-color: lightblue;
+    left: 0;
+    top: 64px;
+    width: 100%;
+}
+
+.progressInner {
+    color: red;
+    background-color: cornflowerblue;
+    height: 3px;
+}
+
