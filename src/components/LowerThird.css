@@ -10,7 +10,7 @@ body {
 
 .main {
   font-family: Open Sans;
-  text-transform: uppercase;
+  /*text-transform: uppercase;*/
   line-height: 1;
   position: fixed;
   bottom: 0%; 
@@ -18,8 +18,39 @@ body {
   /*height: 100%; */
   overflow: hidden;
   height: 4em;
-  padding: 1em;
+  padding: 8px;
+  /*padding: 1em;*/
   background: linear-gradient(25deg, #091521, #7a8699);
+}
+
+.lower3rd {
+  /*width: 420px;*/
+  overflow: hidden;
+}
+
+.lower3rd img {
+  width:  48px;
+  height: 48px;
+  margin: 0px;
+  float: left;
+  border-radius: 50%;
+}
+
+.lower3rd .name {
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  width: 300px;
+  margin-top: 8px;
+  margin-left: 58px;
+  overflow: hidden;
+  color: #ddd;
+}
+
+.lower3rd .email {
+  font-family: Arial, sans-serif;
+  margin-top: 2px;
+  font-size: 12px;
+  margin-left: 58px;
 }
 
 .arimo {

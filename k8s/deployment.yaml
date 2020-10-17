@@ -1,0 +1,71 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: "2020-10-17T17:32:58Z"
+  generation: 1
+  labels:
+    run: peerjs-server
+  name: peerjs-server
+  namespace: default
+  resourceVersion: "29523556"
+  selfLink: /apis/extensions/v1beta1/namespaces/default/deployments/peerjs-server
+  uid: cc647197-109e-11eb-a0fc-42010af001a4
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      run: peerjs-server
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: peerjs-server
+    spec:
+      containers:
+      - args:
+        - --port
+        - "9000"
+        - --path
+        - /myapp
+        image: gcr.io/octo-news/peerjs-server
+        imagePullPolicy: Always
+        name: peerjs-server
+        ports:
+        - containerPort: 9000
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2020-10-17T17:33:00Z"
+    lastUpdateTime: "2020-10-17T17:33:00Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2020-10-17T17:32:58Z"
+    lastUpdateTime: "2020-10-17T17:33:00Z"
+    message: ReplicaSet "peerjs-server-bc96fdc64" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: peerjs-server
+  labels:
+    app: peerjs-server
+spec:
+  containers:
+  - args:
+    - --port
+    - "9000"
+    - --path
+    - /myapp
+    image: gcr.io/octo-news/peerjs-server
+    imagePullPolicy: Always
+    name: peerjs-server
+    ports:
+    - containerPort: 9000
+      protocol: TCP
+    livenessProbe:
+     httpGet:
+      path: /myapp
+      port: 9000
+     initialDelaySeconds: 5
+     periodSeconds: 30
+    readinessProbe:
+     httpGet:
+      path: /myapp
+      port: 9000
+     initialDelaySeconds: 10
+     periodSeconds: 10
+    resources:
+      requests:
+        cpu: 100m
+  restartPolicy: Always

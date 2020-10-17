@@ -28,28 +28,21 @@ const hdVideo = {
   }
 };
 
-class VideoPeer extends Component {
+const PEER_SERVER_HOST='34.120.112.99';
+const PEER_SERVER_PORT=80; 
 
+//const PEER_SERVER_HOST='localhost';
+//const PEER_SERVER_PORT=9000;
+
+class VideoPeer extends Component {
+  
   constructor(props) {
     super(props);
-    var peer = new Peer({
-      host: 'localhost', port: 9000, path: '/myapp',
-      debug: 1,
-      config: {
-        'iceServers': [
-          { url: 'stun:stun1.l.google.com:19302' },
-          {
-            url: 'turn:numb.viagenie.ca',
-            credential: 'muazkh',
-            username: 'webrtc@live.com'
-          }
-        ]
-      }
-    });
+    console.log("Calling videopeer constructor");
     this.state = {
       pick: false,
       user: auth().currentUser,
-      peer: peer, id: false, error: false, conn: false
+      peer: false, id: false, error: false, conn: false
     };
     this.myRef = React.createRef();
     this.lower1 = React.createRef();
@@ -64,10 +57,39 @@ class VideoPeer extends Component {
     this.clear = true;
   };
 
+  connectToPeerServer() {
+    var peer = new Peer({
+      path: '/myapp',
+      host: PEER_SERVER_HOST, 
+      port: PEER_SERVER_PORT,
+      secure: false,
+      debug: 3,
+      config: {
+        'iceServers': [
+          { url: 'stun:stun1.l.google.com:19302' },
+          {
+            url: 'turn:numb.viagenie.ca',
+            credential: 'muazkh',
+            username: 'webrtc@live.com'
+          }
+        ]
+      }
+    });
+    console.log("created peer",peer); 
+    peer.on('error', () => {
+      this.setState({'peer': undefined});
+      console.log("Heard my peer server disconnect!");
+      }); 
+    return peer;
+  };
+
   async componentDidMount() {
     const viewArea = this.myRef.current;
+    const peer = this.connectToPeerServer();
+    // we do this here as II need state.peer in other fns as we ramp up
+    this.state.peer = peer;
     this.present();
-    this.state.peer.on('open', id => {
+    peer.on('open', id => {
       console.log('My peer ID is: ' + id);
       this.setState({ id });
       usersRef.doc(this.state.user.uid)
@@ -105,9 +127,18 @@ class VideoPeer extends Component {
     }
   }
 
+  peerHeartbeat() {
+    var peer = this.state.peer;
+    if (peer !== undefined &&  peer.socket._wsOpen() ) {
+      //console.log("ph");
+      peer.socket.send( {type:'HEARTBEAT'} );
+    }
+  };
+
   heartbeat() {
     // peerConnection iceConnectionState
     console.log("heartbeat");
+    this.peerHeartbeat();
     var call = this.state.call;
     if (call !== undefined) {
       var pc = call.peerConnection.iceConnectionState;
@@ -118,7 +149,7 @@ class VideoPeer extends Component {
       //console.log('Peer Connection is',pc);
     }
     this.setState({ 'start': Date.now(), 'time': 0 });
-    this.advanceCall();  
+    //this.advanceCall();  
   }; 
 
   clearCanvas(canvas_id) {
@@ -229,7 +260,10 @@ class VideoPeer extends Component {
     //const viewArea = this.myRef.current;
     // redirect to chat
     console.log("Heard click to keep");
-    this.setState({'callStart': Date.now()})
+    this.setState({'callStart': Date.now()});
+    if (this.state.ctrl != undefined) {
+      this.state.ctrl.send('like');
+    }
   };
 
   onSelect(peerId) {
@@ -319,7 +353,8 @@ class VideoPeer extends Component {
     ref.set("online");
     console.log(user.displayName + " now videochatting");
     console.log("lowerRef1", this.lowerRef1);
-    this.setState({ 'email1': user.email, 'displayName1': user.displayName });
+    this.setState({ 'email1': user.email, 'pic1': user.photoURL,
+    'displayName1': user.displayName });
   }
 
   stopVid() {
@@ -346,7 +381,7 @@ class VideoPeer extends Component {
         this.state.remote.getVideoTracks()[0].stop();
       }
       this.setState({
-        'remote': undefined, 'call': undefined,
+        'remote': undefined, 'call': undefined, 'pic2': undefined,
         'email2': undefined, 'displayName2': undefined,
         'callStart': Date.now()-(CALLTIME-2000) // give us 2 seconds to adjust
       });
@@ -374,6 +409,10 @@ class VideoPeer extends Component {
       this.setState({ 'ctrl': undefined });
       this.stopVid();
     }
+    else if (data == 'like') {
+      // trigger a heart animation, record for later
+      console.log("They like you!");
+    }
   }
 
 
@@ -391,7 +430,8 @@ class VideoPeer extends Component {
         this.setState({
           'remote': remoteStream, 'call': call,
           'callStart': Date.now(),
-          'email2': destUser.email, 'displayName2': destUser.name
+          'email2': destUser.email, 'displayName2': destUser.name,
+          'pic2': destUser.pic
         });
         video.srcObject = remoteStream;
         video.onloadedmetadata = function (e) {
@@ -427,7 +467,7 @@ class VideoPeer extends Component {
       var video = document.getElementById('video1');
       this.setState({ 'webcam': stream });
       console.log("Mirror", this.state);
-      this.lower1.current.setInfo(this.state.displayName1, this.state.email1);
+      this.lower1.current.setInfo(this.state.displayName1, this.state.email1, this.state.pic1);
       video.srcObject = stream;
       video.onloadedmetadata = function (e) {
         console.log("Playing webcam", stream);
@@ -446,8 +486,9 @@ class VideoPeer extends Component {
           var data = doc.data();
           const displayName2 = data.name;
           const email2 = data.email;
-          this.setState({ displayName2, email2 });
-          this.lower2.current.setInfo(displayName2, email2);
+          const pic2 = data.pic;
+          this.setState({ displayName2, email2, pic2 });
+          this.lower2.current.setInfo(displayName2, email2, pic2);
           //console.log("Connecting to ",displayName2, email2);
         });
       });
