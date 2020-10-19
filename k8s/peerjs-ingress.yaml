@@ -6,6 +6,7 @@ metadata:
     kubernetes.io/ingress.global-static-ip-name: peerjs-server-ip
     nginx.org/proxy-connect-timeout: "3600s"
     nginx.org/proxy-read-timeout: "3600s"
+    networking.gke.io/managed-certificates: chatssl
 spec:
   backend:
     serviceName: peerjs-server

@@ -28,8 +28,8 @@ const hdVideo = {
   }
 };
 
-const PEER_SERVER_HOST='34.120.112.99';
-const PEER_SERVER_PORT=80; 
+const PEER_SERVER_HOST='peer.scott.ai';
+const PEER_SERVER_PORT=443; 
 
 //const PEER_SERVER_HOST='localhost';
 //const PEER_SERVER_PORT=9000;
@@ -64,6 +64,7 @@ class VideoPeer extends Component {
       port: PEER_SERVER_PORT,
       secure: false,
       debug: 3,
+      secure: true,
       config: {
         'iceServers': [
           { url: 'stun:stun1.l.google.com:19302' },
