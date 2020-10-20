@@ -3,6 +3,7 @@ import CallProgress from "../components/CallProgress";
 import Header from "../components/Header";
 import LowerThird from "../components/LowerThird";
 import CanvasDraw from "../components/CanvasDraw";
+import StatusBar from "../components/StatusBar";
 import UserList from "../components/UserList";
 import Peer from "peerjs";
 import { auth } from "../services/firebase";
@@ -11,6 +12,7 @@ import { usersRef } from "../services/firebase";
 
 const HEARTBEAT = 5000;
 const CALLTIME = 30000;
+const INSTRUCTIONS = "Click left video to move on, right video to stay.";
 
 //name = user.displayName;
 //email = user.email;
@@ -28,25 +30,27 @@ const hdVideo = {
   }
 };
 
-const PEER_SERVER_HOST='peer.scott.ai';
-const PEER_SERVER_PORT=443; 
+const PEER_SERVER_HOST = 'peer.scott.ai';
+const PEER_SERVER_PORT = 443;
 
 //const PEER_SERVER_HOST='localhost';
 //const PEER_SERVER_PORT=9000;
 
 class VideoPeer extends Component {
-  
+
   constructor(props) {
     super(props);
     console.log("Calling videopeer constructor");
     this.state = {
       pick: false,
+      status: '',
       user: auth().currentUser,
       peer: false, id: false, error: false, conn: false
     };
     this.myRef = React.createRef();
     this.lower1 = React.createRef();
     this.lower2 = React.createRef();
+    this.statusBar = React.createRef();
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleKeep = this.handleKeep.bind(this);
     this.onSelect = this.onSelect.bind(this);
@@ -60,7 +64,7 @@ class VideoPeer extends Component {
   connectToPeerServer() {
     var peer = new Peer({
       path: '/myapp',
-      host: PEER_SERVER_HOST, 
+      host: PEER_SERVER_HOST,
       port: PEER_SERVER_PORT,
       secure: false,
       debug: 3,
@@ -76,11 +80,11 @@ class VideoPeer extends Component {
         ]
       }
     });
-    console.log("created peer",peer); 
+    console.log("created peer", peer);
     peer.on('error', () => {
-      this.setState({'peer': undefined});
+      this.setState({ 'peer': undefined });
       console.log("Heard my peer server disconnect!");
-      }); 
+    });
     return peer;
   };
 
@@ -130,9 +134,9 @@ class VideoPeer extends Component {
 
   peerHeartbeat() {
     var peer = this.state.peer;
-    if (peer !== undefined &&  peer.socket._wsOpen() ) {
+    if (peer !== undefined && peer.socket._wsOpen()) {
       //console.log("ph");
-      peer.socket.send( {type:'HEARTBEAT'} );
+      peer.socket.send({ type: 'HEARTBEAT' });
     }
   };
 
@@ -151,7 +155,7 @@ class VideoPeer extends Component {
     }
     this.setState({ 'start': Date.now(), 'time': 0 });
     //this.advanceCall();  
-  }; 
+  };
 
   clearCanvas(canvas_id) {
     var canvas = document.getElementById(canvas_id);
@@ -240,10 +244,12 @@ class VideoPeer extends Component {
   advanceCall() {
     console.log("Heard click to connect");
     if (this.callProgress() < 1) {
-      this.setState({'callStart': 0});
+      this.setState({ 'callStart': 0 });
       console.log("Ending convo");
+      this.status("Ending convo");
     }
     else {
+      this.status("Looking for a new partner...");
       console.log("Finding new partner");
       this.pick();
     }
@@ -261,7 +267,11 @@ class VideoPeer extends Component {
     //const viewArea = this.myRef.current;
     // redirect to chat
     console.log("Heard click to keep");
-    this.setState({'callStart': Date.now()});
+
+    this.setState({
+      'callStart': Date.now()
+    });
+    this.status("You like them!  Adding another 30 seconds");
     if (this.state.ctrl != undefined) {
       this.state.ctrl.send('like');
     }
@@ -288,6 +298,7 @@ class VideoPeer extends Component {
             var data = doc.data();
             if (data.peer !== me && !picked) {
               console.log("Found above ", data.email);
+              this.status("Trying " + data.email);
               this.setState({ 'pick': data });
               picked = true;
             }
@@ -316,20 +327,24 @@ class VideoPeer extends Component {
             var data = doc.data();
             if (data.peer !== me && !picked) {
               console.log("Found below ", data.email);
+              this.status("Trying " + data.email);
               this.setState({ 'pick': data });
               picked = true;
             }
           });
         }
       });
-    if (picked === false) console.log("Nobody around");
+    if (picked === false) {
+      console.log("Nobody around");
+      this.status("Everyone's busy.  Try again.");
+    }
     this.picking = false;
   };
 
   pick() {
     if (this.picking === false) {
       this.picking = true;
-      this.setState({'callStart': 0}); // we're ready to switch!
+      this.setState({ 'callStart': 0 }); // we're ready to switch!
       this.stopVid();
       this.pickAbove();
     }
@@ -354,8 +369,10 @@ class VideoPeer extends Component {
     ref.set("online");
     console.log(user.displayName + " now videochatting");
     console.log("lowerRef1", this.lowerRef1);
-    this.setState({ 'email1': user.email, 'pic1': user.photoURL,
-    'displayName1': user.displayName });
+    this.setState({
+      'email1': user.email, 'pic1': user.photoURL,
+      'displayName1': user.displayName
+    });
   }
 
   stopVid() {
@@ -384,7 +401,7 @@ class VideoPeer extends Component {
       this.setState({
         'remote': undefined, 'call': undefined, 'pic2': undefined,
         'email2': undefined, 'displayName2': undefined,
-        'callStart': Date.now()-(CALLTIME-2000) // give us 2 seconds to adjust
+        'callStart': Date.now() - (CALLTIME - 2000) // give us 2 seconds to adjust
       });
     }
     //this.clearCanvas('canvas2');
@@ -409,10 +426,12 @@ class VideoPeer extends Component {
       }
       this.setState({ 'ctrl': undefined });
       this.stopVid();
+      this.status("Closing chat");
     }
     else if (data == 'like') {
       // trigger a heart animation, record for later
       console.log("They like you!");
+      this.status("They like you!");
     }
   }
 
@@ -452,10 +471,12 @@ class VideoPeer extends Component {
       });
 
       call.on('close', s => {
+        this.status("Video call ended");
         console.log("Call disconnected");
         this.stopVid();
       });
     }, function (err) {
+      this.status("Video call failed");
       console.log('Failed to make video call', err);
     });
   };
@@ -490,6 +511,7 @@ class VideoPeer extends Component {
           const pic2 = data.pic;
           this.setState({ displayName2, email2, pic2 });
           this.lower2.current.setInfo(displayName2, email2, pic2);
+          this.status("Connecting to " + String(displayName2));
           //console.log("Connecting to ",displayName2, email2);
         });
       });
@@ -503,6 +525,19 @@ class VideoPeer extends Component {
     return Math.min(1.0, this.state.callTime / (1.0 * CALLTIME));
   };
 
+  status(text) {
+    //console.log("status bar",this.statusBar.current);
+    this.statusBar.current.status(text);
+    this.setState({ 'status': text });
+  };
+
+  _onMouseMove(e) {
+    if (this.state.status !== INSTRUCTIONS) {
+      this.status(INSTRUCTIONS);
+    }
+    this.setState({ x: e.screenX, y: e.screenY });
+  }
+
   answerCall(call) {
     var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
     var video = document.getElementById('video2');
@@ -512,22 +547,25 @@ class VideoPeer extends Component {
       call.on('stream',
         remoteStream => {
           // Show stream in some video/canvas element.
-            video.srcObject = remoteStream;
-            this.setState({'remote': remoteStream,'call': call,'callStart': Date.now()});
-            video.onloadedmetadata = function (e) {
-              console.log("Playing video");
-              video.play();
-            };
-          },
-          function (err) {
-            console.log('Failed to answer video call', err);
-          });
+          this.status("Someone's connecting...");
+          video.srcObject = remoteStream;
+          this.setState({ 'remote': remoteStream, 'call': call, 'callStart': Date.now() });
+          video.onloadedmetadata = function (e) {
+            console.log("Playing video");
+            video.play();
+          };
+        },
+        function (err) {
+          this.status("Failed to answer video call.");
+          console.log('Failed to answer video call', err);
         });
-    };
+    });
+  };
 
   vanswerVideo() {
     this.state.peer.on('call', call => {
       console.log("Got call", call);
+      this.status("Someone is calling you");
       if (this.notReady()) {
         console.log("...rejecting");
         call.close();
@@ -538,60 +576,62 @@ class VideoPeer extends Component {
       }
     });
   };
- 
-      vanswerCtrl() {
-        this.state.peer.on('connection', conn => {
-          if (this.notReady()) {
-            console.log("Rejecting data connection",this.callProgress());
-            conn.close();
-          }
-          else {
-            console.log("Inbound data connection");
-            var ctrl = this.state.ctrl;
-            if (ctrl !== undefined) {
-              console.log("...closing current data");
-              ctrl.send('close');
-              //ctrl.close();
-            }
-            this.setState({'ctrl': conn});
-            conn.on('open', () => {
-              conn.on('data', data => {
-                this.handleCtrl(data);
-              });
-              conn.send('ack');
-            });
-          }
-        });
-      };
 
-      vanswer() {
-        this.vanswerVideo();
-        this.vanswerCtrl();
+  vanswerCtrl() {
+    this.state.peer.on('connection', conn => {
+      if (this.notReady()) {
+        console.log("Rejecting data connection", this.callProgress());
+        conn.close();
       }
+      else {
+        console.log("Inbound data connection");
+        var ctrl = this.state.ctrl;
+        if (ctrl !== undefined) {
+          console.log("...closing current data");
+          ctrl.send('close');
+          //ctrl.close();
+        }
+        this.setState({ 'ctrl': conn });
+        conn.on('open', () => {
+          conn.on('data', data => {
+            this.handleCtrl(data);
+          });
+          conn.send('ack');
+        });
+      }
+    });
+  };
 
-      drawVideo(ctx) {
-        ctx.fillStyle = "#FF0000";
-        ctx.fillRect(0, 0, 150, 75);
-      };
+  vanswer() {
+    this.vanswerVideo();
+    this.vanswerCtrl();
+  }
 
-      render() {
-        var selector = this.onSelect;
-        return (
-          <div>
-            <Header />
-            <CanvasDraw id='canvas1' paint={this.drawVideo} onClick={this.handleSubmit} />
-            <CanvasDraw id='canvas2' paint={this.drawVideo} onClick={this.handleKeep}/>
-            <LowerThird id="lower1" ref={this.lower1} />
-            <LowerThird id="lower2" ref={this.lower2} />
-            <CallProgress progress={this.callProgress()} />
-            <video id='video1' className="PeerArea">
-            </video>
-            <video id='video2' className="PeerArea">
-            </video>
-          </div>
-        );
-      };
+  drawVideo(ctx) {
+    ctx.fillStyle = "#FF0000";
+    ctx.fillRect(0, 0, 150, 75);
+  };
 
-    };
+  render() {
+    var selector = this.onSelect;
+    //console.log("Render "+this.state.status);
+    return (
+      <div onMouseMove={this._onMouseMove.bind(this)}>
+        <Header />
+        <CanvasDraw id='canvas1' paint={this.drawVideo} onClick={this.handleSubmit} />
+        <CanvasDraw id='canvas2' paint={this.drawVideo} onClick={this.handleKeep} />
+        <LowerThird id="lower1" ref={this.lower1} />
+        <LowerThird id="lower2" ref={this.lower2} />
+        <CallProgress progress={this.callProgress()} />
+        <StatusBar id="status" ref={this.statusBar} />
+        <video id='video1' className="PeerArea">
+        </video>
+        <video id='video2' className="PeerArea">
+        </video>
+      </div>
+    );
+  };
 
-    export default VideoPeer;
+};
+
+export default VideoPeer;

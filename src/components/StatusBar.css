@@ -1,0 +1,19 @@
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:400,300);
+@import url(https://fonts.googleapis.com/css?family=Arimo:400,700);
+
+.statusBar {
+  font-family: Arial;
+  /*text-transform: uppercase;*/
+  line-height: 1;
+  font-size: 12px;
+  position: fixed;
+  bottom: 0%; 
+  width: 100%;
+  overflow: hidden;
+  height: 20px;
+  padding: 5px;
+  /*padding: 1em;*/
+  /*background-color: black;*/
+  background: #091521;
+  color: #eee;
+}

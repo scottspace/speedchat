@@ -15,6 +15,9 @@ import Login from './pages/Login';
 import VideoPeer from './pages/VideoPeer';
 import { auth } from './services/firebase';
 import './styles.css';
+import * as faceapi from 'face-api.js';
+
+const MODEL_URL = '/models';
 
 // Higher order component
 function PrivateRoute({ component: Component, authenticated, ...rest }) {
@@ -23,7 +26,7 @@ function PrivateRoute({ component: Component, authenticated, ...rest }) {
       {...rest}
       render={(props) => authenticated === true
         ? <Component {...props} />
-        : <Redirect to={{ pathname: '/login', state: { from: props.location } }} />}
+        : <Redirect to={{ pathname: '/peer', state: { from: props.location } }} />}
     />
   )
 }
@@ -35,7 +38,7 @@ function PublicRoute({ component: Component, authenticated, ...rest }) {
       {...rest}
       render={(props) => authenticated === false
         ? <Component {...props} />
-        : <Redirect to='/peer' />}
+        : <Redirect to='/login' />}
     />
   )
 }
@@ -47,8 +50,18 @@ class App extends Component {
       authenticated: false,
       loading: true,
     };
-  }
+  };
+
+  async startAI() {
+    console.log("loading AI...");
+    await faceapi.loadSsdMobilenetv1Model(MODEL_URL);
+    await faceapi.loadFaceLandmarkModel(MODEL_URL);
+    await faceapi.loadFaceRecognitionModel(MODEL_URL);
+    console.log("AI models loaded");
+  };
+
   componentDidMount() {
+    this.startAI();
     auth().onAuthStateChanged((user) => {
       if (user) {
         this.setState({
@@ -63,6 +76,7 @@ class App extends Component {
       }
     })
   }
+
   render() {
     return this.state.loading === true ? (
       <div className="spinner-border text-success" role="status">
