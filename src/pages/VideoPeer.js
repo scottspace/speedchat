@@ -12,7 +12,7 @@ import { usersRef } from "../services/firebase";
 
 const HEARTBEAT = 5000;
 const CALLTIME = 30000;
-const INSTRUCTIONS = "Click left video to move on, right video to stay.";
+const INSTRUCTIONS = "Click left video to find someone new, right video to stay longer.";
 
 //name = user.displayName;
 //email = user.email;

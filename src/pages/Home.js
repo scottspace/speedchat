@@ -15,6 +15,7 @@ export default class HomePage extends Component {
       authenticated: this.props.authenticated
     };
     console.log("Home auth: ", this.state)
+    console.log("Home props", props);
   };
   
   render() {
