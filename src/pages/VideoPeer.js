@@ -113,11 +113,11 @@ class VideoPeer extends Component {
   };
 
   componentDidUpdate() {
-    //console.log("Peer update");
     this.videoHacker('canvas1', 'video1');
     this.videoHacker('canvas2', 'video2');
     //this.addLowerThirds();
     if (this.state.pick !== false) {
+      console.log("change pick state");
       var pick = this.state.pick;
       this.setState({ 'pick': false });
 

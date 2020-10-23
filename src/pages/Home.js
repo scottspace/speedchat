@@ -11,18 +11,13 @@ export default class HomePage extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      authenticated: this.props.authenticated
-    };
-    console.log("Home auth: ", this.state)
     console.log("Home props", props);
   };
   
   render() {
-    console.log(this.props);
-    if (this.props.authenticated === true) {
+    if (this.props.auth === true) {
       console.log("redirecting");
-      return (<Redirect to='/peer' />);
+      return (<Redirect to='/chat' />);
     }
     return (
       <div className="home">
