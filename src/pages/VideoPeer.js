@@ -88,6 +88,12 @@ class VideoPeer extends Component {
     return peer;
   };
 
+  async componentWillUnmount() {
+    console.log("Unmounting... stopping camera and feed");
+    this.stopWebcam();
+    this.stopVid();
+  };
+
   async componentDidMount() {
     const viewArea = this.myRef.current;
     const peer = this.connectToPeerServer();
