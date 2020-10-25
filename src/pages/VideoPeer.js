@@ -92,6 +92,13 @@ class VideoPeer extends Component {
     console.log("Unmounting... stopping camera and feed");
     this.stopWebcam();
     this.stopVid();
+    this.timer.clearInterval();
+    try {
+     var ref = db.ref("users/" + this.state.user.uid);
+      ref.set("offline");
+    } catch {
+      console.log("Failed to log out");
+    }
   };
 
   async componentDidMount() {
@@ -146,10 +153,7 @@ class VideoPeer extends Component {
     }
   };
 
-  heartbeat() {
-    // peerConnection iceConnectionState
-    console.log("heartbeat");
-    this.peerHeartbeat();
+  cleanupDeadCalls() {
     var call = this.state.call;
     if (call !== undefined) {
       var pc = call.peerConnection.iceConnectionState;
@@ -159,6 +163,20 @@ class VideoPeer extends Component {
       }
       //console.log('Peer Connection is',pc);
     }
+  }
+
+  findMorePeople() {
+    if (this.callProgress() >= 1) {
+      this.pick();
+    }
+  }
+
+  heartbeat() {
+    // peerConnection iceConnectionState
+    console.log("heartbeat");
+    this.peerHeartbeat();
+    this.cleanupDeadCalls();
+    this.findMorePeople();
     this.setState({ 'start': Date.now(), 'time': 0 });
     //this.advanceCall();  
   };
