@@ -30,20 +30,22 @@ body {
 
 .chat-area .chat-bubble {
   background-color: #bbdefb;
-  padding: 20px;
+  padding: 12px;
   border-radius: 4px;
   max-width: 300px;
   word-wrap: break-word;
+  font-size: 14px;
 }
 
 .chat-bubble .chat-time {
-  font-size: 12px;
+  font-size: 9px;
   color: #757575;
   text-align: right;
 }
 
 .chat-area .chat-bubble.current-user {
   margin-left: auto;
+  padding-bottom: -8px;
   background-color: #a5d6a7;
 }
 
