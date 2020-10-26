@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import { debounce } from 'lodash';
 
 export class CanvasDraw extends Component {
+
 	constructor(props) {
 		super(props);
 		this.state = { resizing: true };
@@ -19,11 +20,17 @@ export class CanvasDraw extends Component {
 	componentDidMount() {
         console.log("c mount", this.myRef);
 		window.addEventListener('resize', this.setResize);
-        this.setState({ resizing: false });
-        const width = window.innerWidth*0.5;
-        const height = window.innerHeight;
-        this.setState({ width, height});
-        this.draw();
+		this.setState({ resizing: false });
+		const canvas = this.myRef.current;
+		if (canvas !== null) {
+			var div = canvas.parentElement;
+        	const width = div.offsetWidth;
+       	    const height = div.offsetHeight;
+			this.setState({ width, height});
+		}
+		else {
+			console.log("canvas - null parent div");
+		}
 	}
 
 	componentWillUnmount() {
@@ -32,42 +39,34 @@ export class CanvasDraw extends Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		if (!prevState.resizing && this.state.resizing) {
-            const width = window.innerWidth*0.5;
-            const height = window.innerHeight;
+		// god this is ugly
+		const canvas = this.myRef.current;
+		const resizingDone = !prevState.resizing && this.state.resizing;
+		if (canvas === null) {
+			if (resizingDone) {
+				this.setState({'resizing': false, 'width': undefined});
+			}
+			return;
+		}
+		const div = canvas.parentElement;
+		if (this.state.width == undefined || resizingDone) {
+            const width = div.offsetWidth;
+            const height = div.offsetHeight;
 			const resizing = false;
             this.setState({ resizing, width, height});
 		}
-		const canvas = this.myRef.current;
 		if (canvas !== null) {
 			canvas.width = this.state.width;
 			canvas.height = this.state.height;
 		}
     }
-    
-    // Relies on a ref to a DOM element, so only call
-	// when canvas element has been rendered!
-	draw() {
-		if (this.state && this.myRef.current) {
-			const { width, height} = this.state;
-            const canvas = this.myRef.current;
-			let context = canvas.getContext('2d');
-			// store width, height and ratio in context for paint functions
-			context.width = width;
-			context.height = height;
-			// should we clear the canvas every redraw?
-			if (this.props.clear) { context.clearRect(0, 0, canvas.width, canvas.height); }
-			this.props.paint(context);
-		}
-		// is the provided paint function an animation? (not entirely sure about this API)
-		if (this.props.loop) {
-			window.requestAnimationFrame(this.draw);
-		}
-	}
 
 	render() {
-		if (this.state === undefined) return null;
-		
+		if (this.state === undefined) {
+			return null;
+		}
+		const vis = (this.props.visible === undefined || this.props.visible === true);
+		//console.log("vis",vis);
         return this.state.resizing ? null : 
         (<canvas id={this.id}
                 ref={this.myRef}
@@ -75,8 +74,9 @@ export class CanvasDraw extends Component {
                 height={this.state.height}
                 onClick={this.props.onClick}
 				style={{
+					display: vis ? 'flex' : 'none',
                     backgroundColor: 'black',
-					width: '50%',
+					width: '100%',
                     height: '100%'
 				}} />);
 

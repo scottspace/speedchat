@@ -12,10 +12,6 @@ body {
   font-family: Open Sans;
   /*text-transform: uppercase;*/
   line-height: 1;
-  position: fixed;
-  bottom: 20px; 
-  width: 50%;
-  /*height: 100%; */
   overflow: hidden;
   height: 4em;
   padding: 8px;
@@ -39,7 +35,7 @@ body {
 .lower3rd .name {
   font-family: Arial, sans-serif;
   font-size: 18px;
-  width: 300px;
+  width: 270px;
   margin-top: 8px;
   margin-left: 58px;
   overflow: hidden;
@@ -81,4 +77,15 @@ body {
 .email {
     font-size: 80%;
     color: #cf4c4e;
+}
+
+.icons {
+  float: right;
+    height: 32px;
+    width: 32px;
+    margin-top: -32px;
+    color: white;
+    font-size: 26px;
+    padding: 2px;
+    color: #eee;
 }

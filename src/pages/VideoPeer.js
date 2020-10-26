@@ -6,9 +6,11 @@ import CanvasDraw from "../components/CanvasDraw";
 import StatusBar from "../components/StatusBar";
 import UserList from "../components/UserList";
 import Peer from "peerjs";
+import Chat from "../pages/Chat";
 import { auth } from "../services/firebase";
 import { db } from "../services/firebase";
 import { usersRef } from "../services/firebase";
+import { TinyYolov2SizeType } from "face-api.js";
 
 const HEARTBEAT = 5000;
 const CALLTIME = 30000;
@@ -41,25 +43,42 @@ class VideoPeer extends Component {
   constructor(props) {
     super(props);
     console.log("Calling videopeer constructor");
+    this.initState();
+    this.createRefs();
+    this.bindHandlers();
+  };
+
+  initState() {
     this.state = {
       pick: false,
+      chatting: false,
       status: '',
       user: auth().currentUser,
       peer: false, id: false, error: false, conn: false
     };
+    this.picking = false;
+    this.clear = true;
+  }
+
+  createRefs() {
     this.myRef = React.createRef();
     this.lower1 = React.createRef();
     this.lower2 = React.createRef();
+    this.chat = React.createRef();
     this.statusBar = React.createRef();
+  }
+
+  bindHandlers() {
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleKeep = this.handleKeep.bind(this);
+    this.handleLike = this.handleLike.bind(this);
+    this.handleChatClose = this.handleChatClose.bind(this);
     this.onSelect = this.onSelect.bind(this);
     this.drawVideo = this.drawVideo.bind(this);
     this.vmirror = this.vmirror.bind(this);
     this.vcall = this.vcall.bind(this);
-    this.picking = false;
-    this.clear = true;
-  };
+    this.handleChatOpen = this.handleChatOpen.bind(this);
+  }
 
   connectToPeerServer() {
     var peer = new Peer({
@@ -92,7 +111,7 @@ class VideoPeer extends Component {
     console.log("Unmounting... stopping camera and feed");
     this.stopWebcam();
     this.stopVid();
-    this.timer.clearInterval();
+    clearInterval(this.timer);
     try {
      var ref = db.ref("users/" + this.state.user.uid);
       ref.set("offline");
@@ -184,8 +203,8 @@ class VideoPeer extends Component {
   clearCanvas(canvas_id) {
     var canvas = document.getElementById(canvas_id);
     if (canvas !== null) {
-      var cw = canvas.clientWidth;
-      var ch = canvas.clientHeight;
+      var cw = canvas.offsetWidth;
+      var ch = canvas.offsetHeight;
       var ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, cw, ch);
     }
@@ -196,8 +215,12 @@ class VideoPeer extends Component {
     var video = document.getElementById(video_id);
 
     if (canvas !== undefined && video !== undefined) {
-      var cw = canvas.clientWidth;
-      var ch = canvas.clientHeight;
+      if (canvas == null) {
+        console.log("missing canvas!");
+        return;
+      }
+      var cw = canvas.width;
+      var ch = canvas.height;
       var ctx = canvas.getContext('2d');
       if (video.srcObject === null) {
         // video is off, just clear screen
@@ -246,12 +269,11 @@ class VideoPeer extends Component {
         var w4 = cw * 0.6;
         var h4 = ch * 0.6;
         var x4 = (cw - w4) / 2.0;
-        var y4 = (ch + 60 - h4) / 2.0;
+        var y4 = (ch - h4) / 2.0;
 
         if (video_id === 'video2') {
           this.clear = false;
         }
-
         ctx.scale(-1, 1);
         ctx.imageSmoothingEnabled = false;
         ctx.filter = 'blur(30px) opacity(95%)';
@@ -291,14 +313,7 @@ class VideoPeer extends Component {
     //const viewArea = this.myRef.current;
     // redirect to chat
     console.log("Heard click to keep");
-
-    this.setState({
-      'callStart': Date.now()
-    });
-    this.status("You like them!  Adding another 30 seconds");
-    if (this.state.ctrl != undefined) {
-      this.state.ctrl.send('like');
-    }
+    this.handleLike(null);
   };
 
   onSelect(peerId) {
@@ -382,6 +397,7 @@ class VideoPeer extends Component {
       .doc(user.uid)
       .set({
         random: Math.random(),
+        uid: user.uid,
         online: true,
         peer: peerid,
         name: user.displayName,
@@ -394,7 +410,9 @@ class VideoPeer extends Component {
     console.log(user.displayName + " now videochatting");
     console.log("lowerRef1", this.lowerRef1);
     this.setState({
-      'email1': user.email, 'pic1': user.photoURL,
+      'email1': user.email, 
+      'pic1': user.photoURL,
+      'uid1': user.uid,
       'displayName1': user.displayName
     });
   }
@@ -422,8 +440,14 @@ class VideoPeer extends Component {
       if (this.state.remote !== undefined) {
         this.state.remote.getVideoTracks()[0].stop();
       }
+      console.log("Closing chat window");
+      this.chat.current.setVisible(false);
+
       this.setState({
-        'remote': undefined, 'call': undefined, 'pic2': undefined,
+        'chatting': false,
+        'remote': undefined, 
+        'call': undefined, 
+        'pic2': undefined, 'uid2': undefined,
         'email2': undefined, 'displayName2': undefined,
         'callStart': Date.now() - (CALLTIME - 2000) // give us 2 seconds to adjust
       });
@@ -474,7 +498,9 @@ class VideoPeer extends Component {
         this.setState({
           'remote': remoteStream, 'call': call,
           'callStart': Date.now(),
-          'email2': destUser.email, 'displayName2': destUser.name,
+          'uid2': destUser.uid,
+          'email2': destUser.email, 
+          'displayName2': destUser.name,
           'pic2': destUser.pic
         });
         video.srcObject = remoteStream;
@@ -533,7 +559,9 @@ class VideoPeer extends Component {
           const displayName2 = data.name;
           const email2 = data.email;
           const pic2 = data.pic;
-          this.setState({ displayName2, email2, pic2 });
+          const uid2 = data.uid;
+          this.setState({ displayName2, email2, pic2, uid2});
+          this.chat.current.setChat(this.state.uid1, uid2);
           this.lower2.current.setInfo(displayName2, email2, pic2);
           this.status("Connecting to " + String(displayName2));
           //console.log("Connecting to ",displayName2, email2);
@@ -551,7 +579,9 @@ class VideoPeer extends Component {
 
   status(text) {
     //console.log("status bar",this.statusBar.current);
-    this.statusBar.current.status(text);
+    if (this.statusBar.current !== null) {
+      this.statusBar.current.status(text);
+    }
     this.setState({ 'status': text });
   };
 
@@ -565,15 +595,17 @@ class VideoPeer extends Component {
   answerCall(call) {
     var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
     var video = document.getElementById('video2');
-    this.updateCallerId(call);
     getUserMedia({ video: hdVideo, audio: true }, stream => {
       call.answer(stream); // Answer the call with an A/V stream.
       call.on('stream',
         remoteStream => {
           // Show stream in some video/canvas element.
           this.status("Someone's connecting...");
+          this.updateCallerId(call);
           video.srcObject = remoteStream;
-          this.setState({ 'remote': remoteStream, 'call': call, 'callStart': Date.now() });
+          this.setState({ 'remote': remoteStream, 
+          'call': call, 
+          'callStart': Date.now() });
           video.onloadedmetadata = function (e) {
             console.log("Playing video");
             video.play();
@@ -636,17 +668,57 @@ class VideoPeer extends Component {
     ctx.fillRect(0, 0, 150, 75);
   };
 
+  handleChatClose(who) {
+    console.log("Heard chat close",who);
+    this.setState({'chatting': false});
+  }
+
+  handleChatOpen(who) {
+    console.log("Heard chat open",who);
+    const newChatState = !this.state.chatting;
+    if (newChatState) {
+      this.chat.current.setChat(this.state.uid1, this.state.uid2);
+      this.chat.current.setVisible(true);
+      this.setState({'chatting': newChatState});
+    }
+    else {
+      this.chat.current.setVisible(false);
+      this.chat.current.handleClose();
+    }
+  }
+
+
+  handleLike(who) {
+    this.setState({
+      'callStart': Date.now()
+    });
+    this.status("You like them!  Adding another 30 seconds");
+    if (this.state.ctrl != undefined) {
+      this.state.ctrl.send('like');
+    }
+  }
+
   render() {
     var selector = this.onSelect;
     //console.log("Render "+this.state.status);
+    var showLeft = (this.state.chatting === false);
     return (
-      <div onMouseMove={this._onMouseMove.bind(this)}>
+      <div onMouseMove={this._onMouseMove.bind(this)} className="all">
         <Header />
-        <CanvasDraw id='canvas1' paint={this.drawVideo} onClick={this.handleSubmit} />
-        <CanvasDraw id='canvas2' paint={this.drawVideo} onClick={this.handleKeep} />
-        <LowerThird id="lower1" ref={this.lower1} />
-        <LowerThird id="lower2" ref={this.lower2} />
         <CallProgress progress={this.callProgress()} />
+        <div id="video">
+          <div id="leftVideo">
+            <Chat onClose={this.handleChatClose} ref={this.chat}/>
+            <CanvasDraw visible={showLeft} id='canvas1' onClick={this.handleSubmit}/>
+          </div>
+          <div id="rightVideo">
+            <CanvasDraw id='canvas2' onClick={this.handleKeep} />
+          </div>
+        </div>
+        <div id="lowerThird">
+          <LowerThird id="lower1" onChat={this.handleChatOpen} ref={this.lower1} />
+          <LowerThird id="lower2" onLike={this.handleLike} ref={this.lower2} />
+        </div>
         <StatusBar id="status" ref={this.statusBar} />
         <video id='video1' className="PeerArea">
         </video>

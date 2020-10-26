@@ -4,18 +4,21 @@
 
 body {
   font-family: 'Poppins', sans-serif;
+  background-color:black;
+}
+
+.chatter {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
   background-color: #fcfcfc;
 }
 
-.chat-area, .home {
-  margin-top: 60px;
-}
-
 .chat-area {
+  margin-top: 4px;
   padding: 20px;
   height: 400px;
   overflow-y: scroll;
-  max-width: 410px;
 }
 
 #canvas {
@@ -44,10 +47,14 @@ body {
   background-color: #a5d6a7;
 }
 
+form {
+  display: flex;
+}
+
 .form-control {
-  width: 60%;
-  max-width: 380px;
-  margin-top: 4px;
+  width: 95%;
+  max-height: 48px;
+  margin: 4px;
 }
 
 .form-control:focus {
@@ -55,28 +62,17 @@ body {
 }
 
 .btn {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .btn-submit {
   background-color: #2e7d32;
   color: white;
+  margin: 10px;
 }
 
 .PeerArea {
     display: none;
-}
-
-#canvas1, #lower1 {
-    float:left;
-}
-
-#canvas2 {
-    float: right;
-}
-
-#lower2  {
-    left: 50%;
 }
 
 @media screen and (max-width: 767px) {
@@ -87,4 +83,58 @@ body {
   .chat-area .chat-bubble {
     max-width: 250px;
   }
+}
+
+#video {
+  min-width: 770px;
+  position: fixed;
+  top: 65px;
+  display: flex;
+  flex-flow: row;
+  width: 100%;
+  height: 400px;
+}
+
+#leftVideo {
+  width: 50%;
+  height: 100%;
+}
+
+#rightVideo {
+  width: 50%;
+  height: 100%;
+}
+
+#lowerThird {
+  min-width: 770px;
+  height: 64px;
+  display: flex;
+  flex-flow: row;
+  width: 100%;
+  position: fixed;
+  top: 464px;
+  width: 100%;
+}
+
+#lower1 {
+  width: 50%;
+  height: 64px;
+}
+
+#lower2 {
+  width: 50%;
+  height: 64px;
+}
+
+.chat-header {
+  font-size: 12px;
+  padding: 4px;
+}
+
+.chat-header button {
+  border: none;
+}
+
+.app {
+  background-color: black;
 }
