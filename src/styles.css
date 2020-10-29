@@ -4,7 +4,7 @@
 
 body {
   font-family: 'Poppins', sans-serif;
-  background-color:black;
+  background-color: #fcfcfc;
 }
 
 .chatter {
@@ -139,4 +139,12 @@ form {
 
 .app {
   background-color: black;
+}
+
+.octo-image {
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  margin-left: -10px;
+  margin-right: 4px;
 }

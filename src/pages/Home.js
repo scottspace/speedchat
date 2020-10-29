@@ -25,7 +25,7 @@ export default class HomePage extends Component {
         <section>
           <div className="jumbotron jumbotron-fluid py-5">
             <div className="container text-center py-5">
-              <h1 className="display-4">SpeedChat</h1>
+              <h1 className="display-4">OctoChat</h1>
               <p className="lead">A great place to meet new friends</p>
               <div className="mt-4">
                 <button className="btn btn-primary px-5 mr-3" type="button"

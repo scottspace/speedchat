@@ -405,8 +405,8 @@ class VideoPeer extends Component {
         email: user.email
       }, { merge: true });
     var ref = db.ref("users/" + user.uid);
-    ref.onDisconnect().set("offline");
-    ref.set("online");
+    ref.onDisconnect().set("offline2"); //not working?
+    ref.set("online1");
     console.log(user.displayName + " now videochatting");
     console.log("lowerRef1", this.lowerRef1);
     this.setState({
