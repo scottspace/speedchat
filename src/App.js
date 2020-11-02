@@ -12,9 +12,7 @@ import Home from './pages/Home';
 import VideoPeer from './pages/VideoPeer';
 import { auth } from './services/firebase';
 import './styles.css';
-import * as faceapi from 'face-api.js';
 
-const MODEL_URL = '/models';
 
 // Higher order component
 function PrivateRoute({ component: Component, authenticated, ...rest }) {
@@ -45,24 +43,12 @@ class App extends Component {
     super();
     this.state = {
       authenticated: false,
-      ai: false,
       loading: true,
     };
   };
 
-  async startAI() {
-    if (this.state.ai === false) {
-      console.log("loading AI...");
-      await faceapi.loadSsdMobilenetv1Model(MODEL_URL);
-      await faceapi.loadFaceLandmarkModel(MODEL_URL);
-      await faceapi.loadFaceRecognitionModel(MODEL_URL);
-      this.setState({ ai: true });
-      console.log("AI models loaded");
-    }
-  };
 
   componentDidMount() {
-    this.startAI();
     auth().onAuthStateChanged((user) => {
       console.log("Auth changed", user, this.state);
       if (user) {

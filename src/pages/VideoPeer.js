@@ -11,6 +11,9 @@ import { auth } from "../services/firebase";
 import { db } from "../services/firebase";
 import { usersRef } from "../services/firebase";
 import { TinyYolov2SizeType } from "face-api.js";
+import * as faceapi from 'face-api.js';
+
+const MODEL_URL = '/models';
 
 const HEARTBEAT = 5000;
 const CALLTIME = 30000;
@@ -22,15 +25,18 @@ const INSTRUCTIONS = "Click left video to find someone new, right video to stay 
 //emailVerified = user.emailVerified;
 //uid = user.uid;
 
+const hdVideo = true;
+
+/*
 const hdVideo = {
   mandatory: {
     minWidth: 1280,
     minHeight: 720,
-    /*Added by Chad*/
     maxWidth: 1280,
     maxHeight: 720
   }
 };
+*/
 
 const PEER_SERVER_HOST = 'peer.scott.ai';
 const PEER_SERVER_PORT = 443;
@@ -50,6 +56,7 @@ class VideoPeer extends Component {
 
   initState() {
     this.state = {
+      ai: false,
       pick: false,
       chatting: false,
       status: '',
@@ -59,6 +66,18 @@ class VideoPeer extends Component {
     this.picking = false;
     this.clear = true;
   }
+
+
+  async startAI() {
+    if (this.state.ai === false) {
+      console.log("loading AI...");
+      await faceapi.loadSsdMobilenetv1Model(MODEL_URL);
+      await faceapi.loadFaceLandmarkModel(MODEL_URL);
+      await faceapi.loadFaceRecognitionModel(MODEL_URL);
+      this.setState({ ai: true });
+      console.log("AI models loaded");
+    }
+  };
 
   createRefs() {
     this.myRef = React.createRef();
@@ -78,6 +97,7 @@ class VideoPeer extends Component {
     this.vmirror = this.vmirror.bind(this);
     this.vcall = this.vcall.bind(this);
     this.handleChatOpen = this.handleChatOpen.bind(this);
+    this.startAI = this.startAI.bind(this);
   }
 
   connectToPeerServer() {
@@ -100,9 +120,9 @@ class VideoPeer extends Component {
       }
     });
     console.log("created peer", peer);
-    peer.on('error', () => {
-      this.setState({ 'peer': undefined });
-      console.log("Heard my peer server disconnect!");
+    peer.on('error', (err) => {
+      console.log("Heard my peer server disconnect!", err);
+      this.setState({'peer': this.connectToPeerServer()});
     });
     return peer;
   };
@@ -131,6 +151,7 @@ class VideoPeer extends Component {
       this.setState({ id });
       usersRef.doc(this.state.user.uid)
         .set({ 'peer': id }, { merge: true });
+      this.startAI();
       this.vmirror();
     });
     this.vanswer();
@@ -144,9 +165,46 @@ class VideoPeer extends Component {
     }, 50);
   };
 
+  drawFace(ctx, box_id) {
+    const box = this.state[box_id]
+    if (box_id !== undefined && box !== undefined) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = '4px'; 
+      ctx.fillStyle = "red";
+      ctx.fillRect(10,10,200,200);
+      ctx.backgroundblendMode = 'normal';
+     // ctx.fillRect(Math.round(box.left), Math.round(box.top), 
+      //Math.round(box.width), Math.round(box.height));
+     // ctx.fill();
+      console.log("face box", Math.round(box.left), Math.round(box.top), 
+      Math.round(box.width), Math.round(box.height));
+      //ctx.stroke();
+      ctx.closePath();
+    }
+  }
+
+  faceHacker(canvas_id, box_id) {
+    var canvas = document.getElementById(canvas_id);
+    var box = this.state[box_id];
+    if (box === false || box === undefined) return;
+
+    if (canvas !== undefined) {
+      if (canvas == null) {
+        console.log("missing canvas!");
+        return;
+      }
+      var ctx = canvas.getContext('2d');
+      this.drawFace(ctx, box_id);
+    }
+  }
+
   componentDidUpdate() {
-    this.videoHacker('canvas1', 'video1');
-    this.videoHacker('canvas2', 'video2');
+    this.videoHacker('canvas1', 'video1', 'face1');
+    this.videoHacker('canvas2', 'video2', 'face2');
+    if (this.state.ai !== 'busy') {
+      //this.runAI();
+    }
     //this.addLowerThirds();
     if (this.state.pick !== false) {
       console.log("change pick state");
@@ -190,6 +248,22 @@ class VideoPeer extends Component {
     }
   }
 
+  async runAI () {
+    if (this.state.ai) {
+      if (this.state.ai == 'busy') return;
+      this.setState({'ai': 'busy'});
+      const input = document.getElementById('canvas1');
+      const detections = await faceapi.detectAllFaces(input);
+      if (detections.length > 0) {
+        //console.log("Faces",detections[0].box);
+        this.setState({'face1': detections[0].box, 'ai': true});
+      }
+      else {
+        this.setState({'face1': false, 'ai': true});
+      }
+    }
+  }
+
   heartbeat() {
     // peerConnection iceConnectionState
     console.log("heartbeat");
@@ -210,7 +284,7 @@ class VideoPeer extends Component {
     }
   };
 
-  videoHacker(canvas_id, video_id) {
+  videoHacker(canvas_id, video_id, face_id) {
     var canvas = document.getElementById(canvas_id);
     var video = document.getElementById(video_id);
 
@@ -236,9 +310,6 @@ class VideoPeer extends Component {
       else {
         //console.log("video src", video.srcObject);
         //this.foo = undefined;
-        if (this.clear && video_id === 'video2') {
-          console.log("blitting video2");
-        }
         var vw = video.videoWidth;
         var vh = video.videoHeight;
         var sx = 0, sy = 0, sw = 0, sh = 0
@@ -266,8 +337,8 @@ class VideoPeer extends Component {
         sy = 0; //(vh - sh) / 2;
         //console.log("video",vw,vh,"canvas",cw,ch,"end",w,h,"off",x0,y0);
 
-        var w4 = cw * 0.6;
-        var h4 = ch * 0.6;
+        var w4 = cw * 1.0;
+        var h4 = ch * 1.0;
         var x4 = (cw - w4) / 2.0;
         var y4 = (ch - h4) / 2.0;
 
@@ -276,13 +347,17 @@ class VideoPeer extends Component {
         }
         ctx.scale(-1, 1);
         ctx.imageSmoothingEnabled = false;
-        ctx.filter = 'blur(30px) opacity(95%)';
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, -cw, ch);
-        ctx.restore();
+       // ctx.filter = 'blur(30px) opacity(95%)';
+       // ctx.drawImage(video, sx, sy, sw, sh, 0, 0, -cw, ch);
+       // ctx.restore();
 
         ctx.filter = 'blur(0px) opacity(100%)';
         ctx.drawImage(video, sx, sy, sw, sh, -x4, y4, -w4, h4);
         ctx.restore();
+
+        ctx.scale(1,1);
+        this.drawFace(ctx, face_id);
+
       }
     }
   };
@@ -405,7 +480,7 @@ class VideoPeer extends Component {
         email: user.email
       }, { merge: true });
     var ref = db.ref("users/" + user.uid);
-    ref.onDisconnect().set("offline2"); //not working?
+    ref.onDisconnect().set("offline"); //not working?
     ref.set("online1");
     console.log(user.displayName + " now videochatting");
     console.log("lowerRef1", this.lowerRef1);
