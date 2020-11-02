@@ -347,7 +347,7 @@ class VideoPeer extends Component {
         }
         ctx.scale(-1, 1);
         ctx.imageSmoothingEnabled = false;
-       // ctx.filter = 'blur(30px) opacity(95%)';
+        // ctx.filter = 'blur(30px) opacity(95%)';
        // ctx.drawImage(video, sx, sy, sw, sh, 0, 0, -cw, ch);
        // ctx.restore();
 
@@ -355,8 +355,8 @@ class VideoPeer extends Component {
         ctx.drawImage(video, sx, sy, sw, sh, -x4, y4, -w4, h4);
         ctx.restore();
 
-        ctx.scale(1,1);
-        this.drawFace(ctx, face_id);
+        //ctx.scale(1,1);
+        //this.drawFace(ctx, face_id);
 
       }
     }
