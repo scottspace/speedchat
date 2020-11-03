@@ -17,7 +17,7 @@ const MODEL_URL = '/models';
 
 const HEARTBEAT = 5000;
 const SYNC = 1000; // time to update user state for sharing
-const CALLTIME = 30000;
+const CALLTIME = 90000;
 const INSTRUCTIONS = "Click left video to find someone new, right video to stay longer.";
 
 //name = user.displayName;
