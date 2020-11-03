@@ -16,6 +16,7 @@ import * as faceapi from 'face-api.js';
 const MODEL_URL = '/models';
 
 const HEARTBEAT = 5000;
+const SYNC = 1000; // time to update user state for sharing
 const CALLTIME = 30000;
 const INSTRUCTIONS = "Click left video to find someone new, right video to stay longer.";
 
@@ -98,6 +99,7 @@ class VideoPeer extends Component {
     this.vcall = this.vcall.bind(this);
     this.handleChatOpen = this.handleChatOpen.bind(this);
     this.startAI = this.startAI.bind(this);
+    this.serverSync = this.serverSync.bind(this);
   }
 
   connectToPeerServer() {
@@ -155,11 +157,17 @@ class VideoPeer extends Component {
       this.vmirror();
     });
     this.vanswer();
-    this.setState({ 'start': Date.now(), 'callStart': 0, 'time': 0, 'callTime': 0 });
+    this.setState({ 'start': Date.now(), 
+    'callStart': 0,
+    'syncStart': 0, 
+    'syncTime': 0,
+    'time': 0, 
+    'callTime': 0 });
     this.timer = setInterval(() => {
       var dt = Date.now() - this.state.start;
       this.setState({
         time: Date.now() - this.state.start,
+        syncTime: Date.now() - this.state.syncStart,
         callTime: Date.now() - this.state.callStart
       })
     }, 50);
@@ -219,6 +227,9 @@ class VideoPeer extends Component {
       if (this.state.time > HEARTBEAT) {
         this.heartbeat();
       }
+      if (this.state.syncTime > SYNC) {
+        this.serverSync();
+      }
     }
   }
 
@@ -271,6 +282,19 @@ class VideoPeer extends Component {
     this.cleanupDeadCalls();
     this.findMorePeople();
     this.setState({ 'start': Date.now(), 'time': 0 });
+    //this.advanceCall();  
+  };
+
+  serverSync() {
+    // peerConnection iceConnectionState
+    let user = this.state.user;
+    if (user !== undefined) {
+      usersRef
+        .doc(user.uid)
+        .set({'progress': this.callProgress()},
+             { merge: true });
+      this.setState({ 'syncStart': Date.now(), 'syncTime': 0 });
+    }
     //this.advanceCall();  
   };
 
@@ -471,6 +495,7 @@ class VideoPeer extends Component {
     usersRef
       .doc(user.uid)
       .set({
+        progress: 0,
         random: Math.random(),
         uid: user.uid,
         online: true,
@@ -522,8 +547,10 @@ class VideoPeer extends Component {
         'chatting': false,
         'remote': undefined, 
         'call': undefined, 
-        'pic2': undefined, 'uid2': undefined,
-        'email2': undefined, 'displayName2': undefined,
+        'pic2': undefined, 
+        'uid2': undefined,
+        'email2': undefined, 
+        'displayName2': undefined,
         'callStart': Date.now() - (CALLTIME - 2000) // give us 2 seconds to adjust
       });
     }
@@ -571,7 +598,8 @@ class VideoPeer extends Component {
         // Show stream in some video/canvas element.
         this.updateCallerId(call);
         this.setState({
-          'remote': remoteStream, 'call': call,
+          'remote': remoteStream, 
+          'call': call,
           'callStart': Date.now(),
           'uid2': destUser.uid,
           'email2': destUser.email, 

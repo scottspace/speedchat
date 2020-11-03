@@ -100,6 +100,7 @@ export default class Chat extends Component {
     .doc(user.uid)
     .set({
       online: true,
+      random: Math.random(),
       name: user.displayName,
       pic: user.photoURL,
       email: user.email
